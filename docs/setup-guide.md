@@ -36,9 +36,11 @@
    az group list --output table
    ```
 
-## Azure Automation アカウントの作成
+## Azure Automation アカウントの作成および権限付与
 
-### ステップ 1: Automation アカウントの作成
+### ステップ 1: Automation アカウントの作成及び権限付与
+
+#### 1-1. Automation アカウントの作成
 
 1. **Azure Portal にログイン**
 
@@ -76,6 +78,24 @@
 ### 💡 実行アカウントについて
 
 Azure 実行アカウント（Run As Account）は、Runbook が Azure リソースを操作するために必要な認証情報です。この設定により、PowerShell スクリプトから VM の起動・停止が可能になります。
+
+#### 1-2. Automation アカウントへの権限付与
+
+1. **カスタムロールの作成**
+
+   - サブスクリプションの「アクセス制御（IAM）」を選択し、「カスタムロールの追加」をクリック
+   - 「アクセス許可の追加」で Microsoft Compute をクリックし、Microsoft.Compute/virtualMachine と検索
+   - 下記の権限を選択し、追加をクリック
+     仮想マシンの取得
+     仮想マシンの起動
+     仮想マシンの割り当て解除
+
+2. **カスタムロールの割り当て**
+
+   - 共同作成者を Automation のマネージド ID に対して対象のリソースグループを選択
+   -
+
+修正中
 
 ## 必要なモジュールのインポート
 
