@@ -1,0 +1,88 @@
+{
+  "description": "Azure Automation Runbook のスケジュール設定",
+  "schedules": [
+    {
+      "runbook_name": "add_holidays",
+      "schedule_name": "Annual-Holiday-Update",
+      "description": "年1回の祝日データ更新",
+      "start_time": "次の年の1月1日 10:00",
+      "recurrence": "Monthly",
+      "recurrence_settings": {
+        "interval": 12,
+        "month_settings": {
+          "day_of_month": 1,
+          "run_on_last_day": false
+        }
+      },
+      "timezone": "Asia/Tokyo",
+      "notes": [
+        "毎年1月1日に祝日データを更新します",
+        "実行時間は業務に影響しない時間帯を選択してください",
+        "初回セットアップ時は手動で実行することを推奨します"
+      ]
+    },
+    {
+      "runbook_name": "holiday_automation",
+      "schedule_name": "Weekday-VM-Startup",
+      "description": "平日のVM自動起動（祝日判定付き）",
+      "start_time": "翌営業日の8:00",
+      "recurrence": "Weekly",
+      "recurrence_settings": {
+        "interval": 1,
+        "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      },
+      "timezone": "Asia/Tokyo",
+      "notes": [
+        "月曜日から金曜日の業務開始時間に実行されます",
+        "祝日の場合は not_holidays の判定により VM起動がスキップされます",
+        "業務開始時間に合わせて時刻を調整してください"
+      ]
+    },
+    {
+      "runbook_name": "stop_vm",
+      "schedule_name": "Daily-VM-Shutdown",
+      "description": "毎日のVM自動停止",
+      "start_time": "翌日の20:00",
+      "recurrence": "Daily",
+      "recurrence_settings": {
+        "interval": 1
+      },
+      "timezone": "Asia/Tokyo",
+      "notes": [
+        "毎日業務終了時間にVMを停止します",
+        "祝日判定は行わず、毎日実行されます",
+        "業務終了時間に合わせて時刻を調整してください",
+        "土日の実行も可能ですが、平日のみに制限することも可能です"
+      ]
+    }
+  ],
+  "setup_instructions": [
+    "1. Azure Portal で Automation アカウントにアクセス",
+    "2. [プロセス オートメーション] > [Runbook] を選択",
+    "3. 対象の Runbook を選択",
+    "4. [スケジュール] > [スケジュールの追加] をクリック",
+    "5. [スケジュールを Runbook にリンクします] を選択",
+    "6. [新しいスケジュールを作成します] をクリック",
+    "7. 上記の設定を参考にスケジュールを作成",
+    "8. タイムゾーンを 'Asia/Tokyo' に設定",
+    "9. 各 Runbook に対して適切なスケジュールを設定"
+  ],
+  "time_customization_examples": {
+    "early_startup": {
+      "time": "07:00",
+      "description": "早朝業務がある場合"
+    },
+    "late_startup": {
+      "time": "09:00", 
+      "description": "フレックスタイム制の場合"
+    },
+    "early_shutdown": {
+      "time": "18:00",
+      "description": "早めの業務終了の場合"
+    },
+    "late_shutdown": {
+      "time": "22:00",
+      "description": "夜間業務がある場合"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "description": "Azure Automation用の変数設定",
+  "variables": [
+    {
+      "name": "target_resource_group",
+      "type": "String",
+      "description": "VMの自動起動/停止の対象となるリソースグループ名（複数の場合はカンマ区切り）",
+      "example_value": "rg-vm-test,rg-vm-dev",
+      "required": true,
+      "encrypted": false
+    },
+    {
+      "name": "exclude_VM",
+      "type": "String", 
+      "description": "自動起動/停止を除外したい仮想マシン名（複数の場合はカンマ区切り）",
+      "example_value": "vm-production,vm-critical",
+      "required": false,
+      "encrypted": false
+    },
+    {
+      "name": "holidays_JP",
+      "type": "String",
+      "description": "日本の祝日リスト（カンマ区切り）。add_holidaysスクリプトによって自動更新される",
+      "example_value": "2024/1/1,2024/1/8,2024/2/11,2024/2/12",
+      "required": true,
+      "encrypted": false,
+      "note": "この変数は add_holidays Runbook によって自動的に設定されます。初期値は任意の値で構いません。"
+    }
+  ],
+  "setup_instructions": [
+    "1. Azure Portal で Automation アカウントにアクセス",
+    "2. [共有リソース] > [変数] を選択",
+    "3. [変数の追加] をクリック",
+    "4. 上記の各変数を作成し、実際の環境に合わせた値を設定",
+    "5. target_resource_group には実際のリソースグループ名を設定",
+    "6. exclude_VM には本番環境など除外したいVM名を設定",
+    "7. holidays_JP は初期値として適当な日付を設定（後で自動更新される）"
+  ]
+}

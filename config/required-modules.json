@@ -1,0 +1,40 @@
+{
+  "description": "必要なAzure PowerShellモジュールのリスト",
+  "required_modules": [
+    {
+      "name": "Az.Accounts",
+      "version": "latest",
+      "description": "Azure認証とアカウント管理",
+      "import_order": 1,
+      "installation_notes": "最初にインストールする必要があります"
+    },
+    {
+      "name": "Az.Automation", 
+      "version": "latest",
+      "description": "Azure Automation操作（変数取得など）",
+      "import_order": 2,
+      "installation_notes": "Az.Accounts の後にインストール"
+    },
+    {
+      "name": "Az.Compute",
+      "version": "latest", 
+      "description": "仮想マシンの操作（起動/停止）",
+      "import_order": 3,
+      "installation_notes": "Az.Accounts の後にインストール"
+    }
+  ],
+  "import_instructions": [
+    "1. Azure Portal で Automation アカウントにアクセス",
+    "2. [共有リソース] > [モジュール ギャラリー] を選択",
+    "3. 検索バーに 'Az.Accounts' を入力",
+    "4. [Az.Accounts] をクリック > [インポート] をクリック",
+    "5. インポート完了まで待機（5-10分程度）",
+    "6. 同様の手順で 'Az.Automation' と 'Az.Compute' をインポート",
+    "7. すべてのモジュールがインポート済みであることを確認"
+  ],
+  "verification_steps": [
+    "1. [共有リソース] > [モジュール] で状態確認",
+    "2. すべてのモジュールが '使用可能' になっていることを確認",
+    "3. エラーがある場合は再インポートを実行"
+  ]
+}
