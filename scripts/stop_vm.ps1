@@ -10,93 +10,218 @@
 
 Write-Output "VM自動停止処理を開始します..."
 
+# システム割り当てマネージドIDを使用してAzureに接続
+Write-Output "Connecting to Azure using System-assigned Managed Identity..."
 try {
-    # Azure Run As Account を使用してAzureに接続
-    $servicePrincipalConnection = Get-AutomationConnection -Name "AzureRunAsConnection"
+    $context = Connect-AzAccount -Identity
+    Write-Output "Successfully connected to Azure with Managed Identity"
     
-    Write-Output "Azureに接続中..."
-    Add-AzAccount `
-        -ServicePrincipal `
-        -TenantId $servicePrincipalConnection.TenantId `
-        -ApplicationId $servicePrincipalConnection.ApplicationId `
-        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint
     
-    # 対象リソースグループ取得
-    $TargetResourceGroup = (Get-AutomationVariable -Name 'target_resource_group') -split ","
+    # 現在のサブスクリプション情報を表示
+    $currentContext = Get-AzContext
+    Write-Output "Current subscription: $($currentContext.Subscription.Name) ($($currentContext.Subscription.Id))"
     
-    Write-Output "対象リソースグループ: $($TargetResourceGroup -join ', ')"
-    
-    # 対象リソースグループ所属VMリスト取得
-    $VMList = @()
-    ForEach ($rg in $TargetResourceGroup) {
-        $rgVMs = (Get-AzVM -ResourceGroupName $rg).Name
-        if ($rgVMs) {
-            $VMList += $rgVMs
-            Write-Output "リソースグループ '$rg' 内のVM: $($rgVMs -join ', ')"
-        }
-        else {
-            Write-Output "リソースグループ '$rg' にVMが見つかりませんでした"
-        }
-    }
-    
-    Write-Output "発見されたVM総数: $($VMList.Count)"
-    
-    # 除外VMリスト取得
-    $excludeVM = (Get-AutomationVariable -Name 'exclude_VM') -split ","
-    
-    Write-Output "除外VM: $($excludeVM -join ', ')"
-    
-    # 対象VM取得（全VMリストから除外VMを引く）
-    $targetVM = Compare-Object -ReferenceObject $VMList -DifferenceObject $excludeVM -PassThru
-    
-    if ($targetVM) {
-        Write-Output "停止対象VM: $($targetVM -join ', ')"
+    # サブスクリプションIDが設定されていない場合の処理
+    if (-not $currentContext.Subscription.Id) {
+        Write-Output "Subscription ID is not set. Attempting to retrieve available subscriptions..."
         
-        # 対象VM停止
-        $stoppedVMs = @()
-        $failedVMs = @()
-        
-        $targetVM | ForEach-Object {
-            try {
-                Write-Output "VM '$_' の停止を開始しています..."
+        # 利用可能なサブスクリプション一覧を取得
+        try {
+            $subscriptions = Get-AzSubscription -ErrorAction Stop
+            Write-Output "Available subscriptions: $($subscriptions.Count)"
+            
+            if ($subscriptions.Count -gt 0) {
+                # 最初のサブスクリプションを使用
+                $targetSubscription = $subscriptions[0]
+                Write-Output "Setting subscription to: $($targetSubscription.Name) ($($targetSubscription.Id))"
+                Set-AzContext -SubscriptionId $targetSubscription.Id
                 
-                # VM の現在の状態を確認
-                $vmStatus = Get-AzVM -ResourceGroupName (Get-AzVM -Name $_).ResourceGroupName -Name $_ -Status
-                $powerState = ($vmStatus.Statuses | Where-Object { $_.Code -like "PowerState/*" }).Code
-                
-                if ($powerState -eq "PowerState/running") {
-                    $result = Stop-AzVM -ResourceGroupName (Get-AzVM -Name $_).ResourceGroupName -Name $_ -Force -NoWait
-                    $stoppedVMs += $_
-                    Write-Output "VM '$_' の停止コマンドを正常に実行しました"
-                }
-                elseif ($powerState -eq "PowerState/stopped" -or $powerState -eq "PowerState/deallocated") {
-                    Write-Output "VM '$_' は既に停止しています（状態: $powerState）"
-                    $stoppedVMs += $_
-                }
-                else {
-                    Write-Output "VM '$_' の状態が不明です（状態: $powerState）"
-                }
+                # 再度コンテキストを確認
+                $updatedContext = Get-AzContext
+                Write-Output "Updated subscription: $($updatedContext.Subscription.Name) ($($updatedContext.Subscription.Id))"
             }
-            catch {
-                Write-Error "VM '$_' の停止に失敗しました: $($_.Exception.Message)"
-                $failedVMs += $_
+            else {
+                Write-Output "ERROR: No subscriptions available for this Managed Identity"
+                Write-Output "SOLUTION: Please assign appropriate permissions to the Managed Identity:"
+                Write-Output "1. Go to Azure Portal → Subscriptions → Access control (IAM)"
+                Write-Output "2. Add role assignment → Role: Reader or Virtual Machine Contributor"
+                Write-Output "3. Principal: [Your Automation Account Name]"
+                Write-Output "4. Or assign permissions at Resource Group level"
+                throw "No accessible subscriptions found - Permission configuration required"
             }
         }
-        
-        Write-Output "停止処理完了:"
-        Write-Output "  正常停止: $($stoppedVMs.Count)台 ($($stoppedVMs -join ', '))"
-        if ($failedVMs.Count -gt 0) {
-            Write-Output "  停止失敗: $($failedVMs.Count)台 ($($failedVMs -join ', '))"
+        catch {
+            Write-Output "ERROR: Failed to retrieve subscriptions: $($_.Exception.Message)"
+            Write-Output "This typically indicates insufficient permissions for the Managed Identity"
+            Write-Output "Please check the Managed Identity permissions in Azure Portal"
+            throw
         }
     }
-    else {
-        Write-Output "停止対象のVMがありません（すべて除外リストに含まれているか、VMが存在しません）"
-    }
-    
-    Write-Output "VM自動停止処理が完了しました"
-    
 }
 catch {
-    Write-Error "VM停止処理中にエラーが発生しました: $($_.Exception.Message)"
+    Write-Output "Failed to connect to Azure: $($_.Exception.Message)"
+    throw
+} 
+
+#target_resource_group変数からリソースグループ名を取得
+Write-Output "Getting target resource groups..."
+try {
+    $TargetResourceGroup = (Get-AutomationVariable -Name 'target_resource_group') -split ","
+    $TargetResourceGroup = $TargetResourceGroup | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+    Write-Output "Target resource groups: $($TargetResourceGroup -join ', ')"
+}
+catch {
+    Write-Output "Failed to get target_resource_group variable: $($_.Exception.Message)"
     throw
 }
+
+# サブスクリプションIDを明示的に設定（オプション）
+Write-Output "Checking for explicit subscription ID setting..."
+try {
+    $explicitSubscriptionId = Get-AutomationVariable -Name 'target_subscription_id' -ErrorAction SilentlyContinue
+    if ($explicitSubscriptionId) {
+        Write-Output "Found explicit subscription ID: $explicitSubscriptionId"
+        Set-AzContext -SubscriptionId $explicitSubscriptionId
+        $finalContext = Get-AzContext
+        Write-Output "Set subscription context: $($finalContext.Subscription.Name) ($($finalContext.Subscription.Id))"
+    }
+    else {
+        Write-Output "No explicit subscription ID found, using current context"
+    }
+}
+catch {
+    Write-Output "Warning: Could not set explicit subscription: $($_.Exception.Message)"
+}
+
+#上記で取得したリソースグループに所属する仮想マシンリストを取得
+Write-Output "Getting VM list from target resource groups..."
+$VMList = @()
+$totalVMsFound = 0
+
+ForEach ($rg in $TargetResourceGroup) {
+    try {
+        if ($rg -ne "") {
+            Write-Output "Processing resource group: $rg"
+            
+            # リソースグループの存在確認
+            Write-Output "Checking if resource group '$rg' exists..."
+            $resourceGroup = Get-AzResourceGroup -Name $rg -ErrorAction Stop
+            Write-Output "Resource group '$rg' found in subscription"
+            Write-Output "Resource group location: $($resourceGroup.Location)"
+            Write-Output "Resource group provisioning state: $($resourceGroup.ProvisioningState)"
+            
+            # VM一覧を取得
+            Write-Output "Calling Get-AzVM for resource group: $rg"
+            $vmsInRG = Get-AzVM -ResourceGroupName $rg -ErrorAction Stop
+            Write-Output "Get-AzVM returned $($vmsInRG.Count) VM objects"
+            
+            if ($vmsInRG -and $vmsInRG.Count -gt 0) {
+                # VM名を正しく抽出（Write-Outputをパイプラインから除外）
+                $vmNames = @()
+                foreach ($vm in $vmsInRG) {
+                    Write-Output "Processing VM object: $($vm.Name)"
+                    $vmNames += $vm.Name
+                }
+                Write-Output "VM names extracted: $($vmNames -join ', ')"
+                
+                if ($vmNames.Count -gt 0) {
+                    $VMList += $vmNames
+                    $totalVMsFound += $vmNames.Count
+                    Write-Output "Found $($vmNames.Count) VMs in resource group '$rg': $($vmNames -join ', ')"
+                }
+                else {
+                    Write-Output "Warning: VM objects found but no names extracted"
+                }
+            }
+            else {
+                Write-Output "No VM objects returned from Get-AzVM"
+            }
+        }
+    }
+    catch {
+        Write-Output "Error processing resource group '$rg': $($_.Exception.Message)"
+        Write-Output "Error type: $($_.Exception.GetType().Name)"
+        Write-Output "Error details: $($_.Exception.ToString())"
+        
+        # リソースグループが存在しない場合の詳細情報
+        if ($_.Exception.Message -like "*ResourceGroupNotFound*") {
+            Write-Output "Resource group '$rg' does not exist or no permission to access"
+        }
+        elseif ($_.Exception.Message -like "*Forbidden*" -or $_.Exception.Message -like "*Authorization*") {
+            Write-Output "Permission denied: Managed Identity may not have sufficient permissions"
+        }
+        elseif ($_.Exception.Message -like "*SubscriptionId*") {
+            Write-Output "Subscription context issue detected"
+        }
+    }
+}
+Write-Output "Total VMs found across all resource groups: $totalVMsFound"
+Write-Output "VMList array contents: [$($VMList -join ', ')]"
+Write-Output "VMList count: $($VMList.Count)"
+
+#除外VMリスト取得
+Write-Output "Getting exclude VM list..."
+try {
+    $excludeVM = (Get-AutomationVariable -Name 'exclude_VM') -split ","
+    $excludeVM = $excludeVM | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+    Write-Output "Exclude VMs: $($excludeVM -join ', ')"
+}
+catch {
+    Write-Output "Warning: Failed to get exclude_VM variable, proceeding without exclusions: $($_.Exception.Message)"
+    $excludeVM = @()
+}
+
+#対象VM取得
+Write-Output "Determining target VMs..."
+if ($VMList.Count -eq 0) {
+    $targetVM = @()
+    Write-Output "No VMs available for processing"
+}
+elseif ($excludeVM.Count -gt 0) {
+    $targetVM = $VMList | Where-Object { $_ -notin $excludeVM }
+    Write-Output "Applied exclusion filter"
+}
+else {
+    $targetVM = $VMList
+    Write-Output "No exclusions applied"
+}
+
+Write-Output "Target VMs for shutdown: $($targetVM -join ', ')"
+Write-Output "Number of VMs to stop: $($targetVM.Count)"
+
+#対象VM停止
+Write-Output "Stopping VMs..."
+$successCount = 0
+$failureCount = 0
+
+if ($targetVM.Count -eq 0) {
+    Write-Output "No VMs to stop."
+}
+else {
+    $targetVM | ForEach-Object {
+        try {
+            $vmName = $_
+            Write-Output "Stopping VM: $vmName"
+            
+            # VM情報を取得してリソースグループを特定
+            $vmInfo = Get-AzVM -Name $vmName -ErrorAction Stop
+            $resourceGroupName = $vmInfo.ResourceGroupName
+            
+            # VM停止（-Forceオプションで強制停止、-NoWaitで並列実行）
+            Stop-AzVM -ResourceGroupName $resourceGroupName -Name $vmName -Force -NoWait
+            Write-Output "VM '$vmName' in resource group '$resourceGroupName' - stop command sent successfully"
+            $successCount++
+        }
+        catch {
+            Write-Output "Failed to stop VM '$vmName': $($_.Exception.Message)"
+            $failureCount++
+        }
+    }
+}
+
+Write-Output "=== VM Shutdown Summary ==="
+Write-Output "Total VMs discovered: $totalVMsFound"
+Write-Output "VMs after exclusion: $($targetVM.Count)"
+Write-Output "Successfully stopped: $successCount"
+Write-Output "Failed to stop: $failureCount"
+Write-Output "VM shutdown process completed."

@@ -60,10 +60,14 @@
    リージョン: Japan East（東日本）
    ```
 
-5. **高度な設定**
+![Automation アカウント作成画面](../images/automation-account-creation.png)
 
-   - **Azure 実行アカウントの作成**: 「はい」を選択 ⚠️**重要**
-   - システム割り当てマネージド ID: 「オフ」
+5. **詳細設定**
+
+   - システム割り当てマネージド ID: 「オン」
+   - ユーザー割り当てマネージド ID: 「オフ」
+
+   ![Automation アカウント作成画面](../images/automation-account-creation-managedid.png)
 
 6. **確認と作成**
    - 設定内容を確認して「作成」をクリック
@@ -81,38 +85,20 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
 
    - 作成した Automation アカウントを開く
 
-2. **モジュールギャラリーへのアクセス**
+2. **モジュールのインポート状況確認**
 
-   - 左側メニューの「共有リソース」→「モジュール ギャラリー」を選択
+   - 左側メニューの「共有リソース」→「モジュール」を選択。以下のモジュールが使用可能か確認。
+     「Az.Accounts」
+     「Az.Automation」
+     「Az.Compute」
 
-3. **Az.Accounts モジュールのインポート**
+   ![Automation モジュール確認](../images/automation-module-check.png)
 
-   ```
-   ※重要: モジュールは必ず順番通りにインポートしてください
-   ```
+3. **モジュールのインポート**
 
-   - 検索バーに「Az.Accounts」と入力
-   - 「Az.Accounts」をクリック
-   - 「インポート」ボタンをクリック
-   - インポート完了まで待機（5-10 分）
+   - 「共有リソース」 → 「モジュール」 → 「ギャラリー参照」から必要なモジュールをインポート。
 
-4. **Az.Automation モジュールのインポート**
-
-   - 検索バーに「Az.Automation」と入力
-   - 「Az.Automation」をクリック
-   - 「インポート」ボタンをクリック
-   - インポート完了まで待機
-
-5. **Az.Compute モジュールのインポート**
-
-   - 検索バーに「Az.Compute」と入力
-   - 「Az.Compute」をクリック
-   - 「インポート」ボタンをクリック
-   - インポート完了まで待機
-
-6. **インポート状況の確認**
-   - 「共有リソース」→「モジュール」で確認
-   - すべてのモジュールが「使用可能」になることを確認
+   ![Automation モジュールインポート](../images/automation-module-gallery.png)
 
 ### ⚠️ 注意事項
 
@@ -126,7 +112,7 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
 
 1. **変数画面へのアクセス**
 
-   - 「共有リソース」→「変数」を選択
+   - 作成した Automation のアカウントから「共有リソース」→「変数」を選択
 
 2. **target_resource_group 変数の作成**
 
@@ -139,6 +125,8 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
    値: rg-test-vm（実際のリソースグループ名に変更）
    暗号化: いいえ
    ```
+
+   ![Automation 変数の追加](../images/automation-variables-add.png)
 
 3. **exclude_VM 変数の作成**
 
@@ -155,7 +143,7 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
    名前: holidays_JP
    説明: 日本の祝日リスト（自動更新される）
    タイプ: 文字列
-   値: 2024/1/1（任意の初期値）
+   値: 2025/10/30（任意の初期値）
    暗号化: いいえ
    ```
 
@@ -180,16 +168,22 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    - 「プロセス オートメーション」→「Runbook」を選択
    - 「+ Runbook の作成」をクリック
 
+   ![Automation Runbook の作成](../images/automation-runbook-create.png)
+
    ```
    名前: add_holidays
    Runbook の種類: PowerShell
+   ランタイムバージョン: 5.1
    説明: 内閣府から祝日データを取得してAutomation変数に格納
    ```
 
 2. **スクリプトの入力**
+
    - `scripts/add_holidays.ps1` の内容をコピー&ペースト
    - 「保存」をクリック
    - 「公開」をクリック
+
+   ![Automation Runbook add_holidays 作成](../images/automation-runbook-add_holidays.png)
 
 #### 4-2. not_holidays Runbook の作成
 
@@ -243,7 +237,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
 
    ```
    名前: holiday_automation
-   Runbook の種類: グラフィック
+   Runbook の種類: グラフィカル PowerShell
+   ランタイムバージョン: 5.1
    説明: 祝日判定と条件分岐によるVM起動制御
    ```
 
@@ -259,8 +254,13 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    - 「not_holidays」の「...」→「キャンバスに追加」
    - 「start_vm」の「...」→「キャンバスに追加」
 
+   ![Automation キャンバスに追加](../images/automation-runbook-canvas.png)
+
 2. **接続線の設定**
+
    - 「not_holidays」の右下の赤丸から「start_vm」へ線を引く
+
+   ![Automation ワークフロー作成](../images/automation-runbook-workflow.png)
 
 #### 5-3. 条件分岐の設定
 
@@ -274,6 +274,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    条件の適用: はい
    条件式: !$ActivityOutput["not_holidays"]
    ```
+
+   ![Automation プロパティ設定](../images/automation-runbook-property.png)
 
 2. **設定の保存**
    - 「保存」をクリック
@@ -300,6 +302,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    - 「スケジュール」をクリック
    - 「+ スケジュールの追加」をクリック
 
+   ![Automation schedule追加](../images/automation-schedule.png)
+
 2. **スケジュールの作成**
 
    - 「スケジュールを Runbook にリンクします」をクリック
@@ -307,8 +311,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
 
    ```
    名前: Annual-Holiday-Update
-   説明: 年1回の祝日データ更新
-   開始: 2024年1月1日 10:00:00
+   説明: 祝日データ更新
+   開始: 2025年10月31日 10:00
    タイムゾーン: (UTC+09:00) 大阪、札幌、東京
    繰り返し: はい
    繰り返し間隔: 1 月
@@ -316,6 +320,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
      - 月の指定した日に実行: 1
      - 月の最終日に実行: いいえ
    ```
+
+   ![Automation Schedule Annual_holiday](../images/automation-schedule-annual_holiday.png)
 
 #### 6-2. holiday_automation のスケジュール設定
 
