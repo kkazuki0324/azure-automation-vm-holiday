@@ -81,21 +81,17 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
 
 #### 1-2. Automation アカウントへの権限付与
 
-1. **カスタムロールの作成**
+1. **Azure ロールの割り当て**
+Azure Automation アカウントにVMを操作するための権限を割り当てる。
 
-   - サブスクリプションの「アクセス制御（IAM）」を選択し、「カスタムロールの追加」をクリック
-   - 「アクセス許可の追加」で Microsoft Compute をクリックし、Microsoft.Compute/virtualMachine と検索
-   - 下記の権限を選択し、追加をクリック
-     仮想マシンの取得
-     仮想マシンの起動
-     仮想マシンの割り当て解除
+   - Automation アカウントの「アカウント設定」→「ID」を選択し、Azure ロールの割り当てをクリック
 
-2. **カスタムロールの割り当て**
+   ![Automation アカウントへのロール割り当て1](../images/automation-account-1.png)
+     
+   - スコープを対象のリソースグループを選択し、役割を**仮想マシン共同作成者**を選択します。
 
-   - 共同作成者を Automation のマネージド ID に対して対象のリソースグループを選択
-   -
+   ![Automation アカウントへのロール割り当て2](../images/automation-account-2.png)
 
-修正中
 
 ## 必要なモジュールのインポート
 
