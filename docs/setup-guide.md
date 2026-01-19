@@ -289,7 +289,7 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    ```
    タイプ: シーケンス
    条件の適用: はい
-   条件式: !$ActivityOutput["not_holidays"]
+   条件式: $ActivityOutput['not_holidays'].ToString() -eq 'False'
    ```
 
    ![Automation プロパティ設定](../images/automation-runbook-property.png)
