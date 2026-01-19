@@ -92,6 +92,7 @@ Azure Automation アカウントにVMを操作するための権限を割り当�
 
    ![Automation アカウントへのロール割り当て2](../images/automation-account-2.png)
 
+https://learn.microsoft.com/ja-jp/azure/automation/enable-managed-identity-for-automation#assign-role-to-a-system-assigned-managed-identity
 
 ## 必要なモジュールのインポート
 
