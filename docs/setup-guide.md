@@ -82,7 +82,7 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
 #### 1-2. Automation アカウントへの権限付与
 
 1. **Azure ロールの割り当て**
-Azure Automation アカウントに Fabric を操作するための権限を割り当てる。
+   Azure Automation アカウントに Fabric を操作するための権限を割り当てる。
 
    - Automation アカウントの「アカウント設定」→「ID」を選択し、Azure ロールの割り当てをクリック
 
