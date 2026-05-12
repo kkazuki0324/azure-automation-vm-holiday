@@ -1,6 +1,6 @@
-# Azure Automation で祝日判定付き VM 自動起動/停止ハンズオン
+# Azure Automation で祝日判定付き Fabric 自動起動/停止ハンズオン
 
-このハンズオンでは、Azure Automation を使用して日本の祝日を考慮した Virtual Machine（VM）の自動起動/停止システムを構築します。内閣府の Web サイトから祝日データを取得し、平日のみ VM を起動、祝日は起動せずコストを最適化するシステムを学習します。
+このハンズオンでは、Azure Automation を使用して日本の祝日を考慮した Microsoft Fabric の自動起動/停止システムを構築します。内閣府の Web サイトから祝日データを取得し、平日のみ Fabric を起動、祝日は起動せずコストを最適化するシステムを学習します。
 
 ## 🎯 学習目標
 
@@ -11,25 +11,25 @@
 - Azure Automation 変数の活用方法
 - Graphical Runbook による条件分岐処理
 - 日本の祝日データの取得と活用
-- VM リソース管理の自動化
+- Fabric リソース管理の自動化
 
 ## 🛠️ 前提条件
 
 ### 必要な権限
 
 - Azure サブスクリプション（Contributor 以上の権限）
-- Virtual Machine の作成・管理権限
+- Microsoft Fabric の作成・管理権限
 - Azure Automation リソースの作成権限
 
 ### 必要な知識
 
 - Azure Portal の基本操作
 - PowerShell の基礎知識
-- Virtual Machine の基本概念
+- Microsoft Fabric の基本概念
 
 ### 準備するもの
 
-- 動作確認用の Azure VM（停止可能なテスト環境）
+- 動作確認用の Microsoft Fabric（停止可能なテスト環境）
 - Web ブラウザと Azure Portal へのアクセス
 
 ## 📋 システム概要
@@ -39,15 +39,15 @@
 1. **年次処理**：内閣府ホームページから祝日 CSV をダウンロード
 2. **祝日データ処理**：年末年始休暇などの追加休日を設定
 3. **変数格納**：今年と来年の祝日データを Azure 変数に保存
-4. **平日起動処理**：祝日以外の平日に VM を自動起動
-5. **毎日停止処理**：業務終了時間に VM を自動停止
+4. **平日起動処理**：祝日以外の平日に Fabric を自動起動
+5. **毎日停止処理**：業務終了時間に Fabric を自動停止
 
 ### システム構成図
 
 ```
 ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│内閣府Web    │───▶│Azure         │───▶│Virtual      │
-│(祝日CSV)    │    │Automation    │    │Machines     │
+│内閣府Web    │───▶│Azure         │───▶│Microsoft    │
+│(祝日CSV)    │    │Automation    │    │Fabric       │
 └─────────────┘    └──────────────┘    └─────────────┘
                           │
                    ┌──────────────┐
@@ -59,7 +59,7 @@
 ## 📁 プロジェクト構成
 
 ```
-azure-automation-vm-holiday/
+azure-automation-fabric-holiday/
 ├── README.md                          # このファイル
 ├── docs/                             # ドキュメント
 │   ├── setup-guide.md                # 詳細セットアップガイド
@@ -67,8 +67,8 @@ azure-automation-vm-holiday/
 ├── scripts/                          # PowerShellスクリプト
 │   ├── add_holidays.ps1              # 祝日データ取得・設定
 │   ├── not_holidays.ps1              # 祝日判定
-│   ├── start_vm.ps1                  # VM起動
-│   └── stop_vm.ps1                   # VM停止
+│   ├── start_vm.ps1                  # Fabric 起動
+│   └── stop_vm.ps1                   # Fabric 停止
 ├── config/                           # 設定ファイル
 │   ├── automation-variables.json     # Automation変数設定
 │   └── runbook-schedules.json        # Runbookスケジュール設定
@@ -94,18 +94,18 @@ azure-automation-vm-holiday/
 
 ### ステップ 3: Automation 変数の設定
 
-| 変数名                  | 値の例              | 説明                       |
-| ----------------------- | ------------------- | -------------------------- |
-| `target_resource_group` | "rg-test-vm"        | 対象 VM のリソースグループ |
-| `exclude_VM`            | "vm-production"     | 除外したい VM 名           |
-| `holidays_JP`           | "2024/1/1,2024/1/2" | 祝日リスト（自動更新）     |
+| 変数名                  | 値の例              | 説明                             |
+| ----------------------- | ------------------- | -------------------------------- |
+| `target_resource_group` | "rg-test-fabric"    | 対象 Fabric のリソースグループ   |
+| `exclude_VM`            | "fabric-production" | 除外したい Fabric 名             |
+| `holidays_JP`           | "2024/1/1,2024/1/2" | 祝日リスト（自動更新）           |
 
 ### ステップ 4: Runbook の作成
 
 1. `add_holidays` - 祝日データ取得（年 1 回実行）
 2. `not_holidays` - 祝日判定処理
-3. `start_vm` - VM 起動処理
-4. `stop_vm` - VM 停止処理（毎日実行）
+3. `start_vm` - Fabric 起動処理
+4. `stop_vm` - Fabric 停止処理（毎日実行）
 5. `holiday_automation` - 条件分岐処理（平日実行）
 
 ### ステップ 5: スケジュール設定
@@ -124,7 +124,7 @@ azure-automation-vm-holiday/
 ## ⚠️ 注意事項
 
 - **本番環境での使用前に必ずテスト環境で動作確認を行ってください**
-- スクリプトの実行によって VM が意図せず停止する可能性があります
+- スクリプトの実行によって Fabric が意図せず停止する可能性があります
 - Azure 使用料金が発生します。不要なリソースは削除してください
 - 祝日データは内閣府の Web サイトに依存しているため、サイト変更時は対応が必要です
 
@@ -138,15 +138,15 @@ azure-automation-vm-holiday/
 $additionalHolidays = @("/1/2", "/1/3", "/12/29", "/12/30", "/12/31")
 ```
 
-### 対象 VM の変更
+### 対象 Fabric の変更
 
-`automation-variables.json`で対象 VM や除外 VM を設定できます。
+`automation-variables.json`で対象 Fabric や除外 Fabric を設定できます。
 
 ## 📊 コスト最適化効果
 
 このシステムにより期待できるコスト削減：
 
-- 祝日分の VM 稼働時間削減：年間約 20 日分
+- 祝日分の Fabric 稼働時間削減：年間約 20 日分
 - 土日祝日での自動停止忘れ防止
 - 手動操作ミスの防止
 
