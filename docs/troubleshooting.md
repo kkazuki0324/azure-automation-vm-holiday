@@ -1,4 +1,4 @@
-# Azure Automation 祝日判定付き VM 自動起動/停止 トラブルシューティングガイド
+# Azure Automation 祝日判定付き Fabric 自動起動/停止 トラブルシューティングガイド
 
 このドキュメントでは、システム運用中に発生する可能性のある問題と解決方法を説明します。
 
@@ -13,11 +13,11 @@
 
 ## よくある問題と解決方法
 
-### 🔥 問題 1: VM が祝日でも起動してしまう
+### 🔥 問題 1: Fabric が祝日でも起動してしまう
 
 **症状**
 
-- 祝日にも関わらず VM が自動起動される
+- 祝日にも関わらず Fabric が自動起動される
 - 祝日判定が正しく動作していない
 
 **原因と解決方法**
@@ -57,11 +57,11 @@ $Today = Get-Date -Format "yyyy/M/d"  # 正しい（先頭ゼロなし）
 間違い: $ActivityOutput["not_holidays"]
 ```
 
-### 🔥 問題 2: VM が平日でも起動しない
+### 🔥 問題 2: Fabric が平日でも起動しない
 
 **症状**
 
-- 平日に VM が自動起動されない
+- 平日に Fabric が自動起動されない
 - holiday_automation が実行されているが、start_vm が動作しない
 
 **解決方法**
@@ -78,7 +78,7 @@ $Today = Get-Date -Format "yyyy/M/d"  # 正しい（先頭ゼロなし）
 
 ```
 target_resource_group: 実際のリソースグループ名が正しいか
-exclude_VM: 対象VMが除外リストに含まれていないか
+exclude_VM: 対象 Fabric が除外リストに含まれていないか
 ```
 
 #### 3. 権限の確認
@@ -270,11 +270,11 @@ Write-Output "祝日判定結果: $is_holiday"
 
 2. **VM 起動/停止テスト**
    ```
-   1. テスト用VMを準備
-   2. 平日にholiday_automationを手動実行
-   3. VMが起動することを確認
-   4. stop_vmを手動実行
-   5. VMが停止することを確認
+   1. テスト用 Fabric を準備
+   2. 平日に holiday_automation を手動実行
+   3. Fabric が起動することを確認
+   4. stop_vm を手動実行
+   5. Fabric が停止することを確認
    ```
 
 ### 年次検証項目
@@ -288,27 +288,27 @@ Write-Output "祝日判定結果: $is_holiday"
 
 ## 緊急時の対応
 
-### VM が停止しない場合
+### Fabric が停止しない場合
 
 1. **即座の対応**
 
    ```powershell
    # Azure CLI による緊急停止
-   az vm stop --resource-group "リソースグループ名" --name "VM名"
+   az vm stop --resource-group "リソースグループ名" --name "Fabric 名"
    ```
 
 2. **根本原因の調査**
    - stop_vm Runbook の実行履歴確認
-   - VM の状態確認
+   - Fabric の状態確認
    - 権限問題の調査
 
-### VM が起動しない場合
+### Fabric が起動しない場合
 
 1. **手動起動**
 
    ```powershell
    # Azure CLI による手動起動
-   az vm start --resource-group "リソースグループ名" --name "VM名"
+   az vm start --resource-group "リソースグループ名" --name "Fabric 名"
    ```
 
 2. **自動化の修復**
@@ -324,7 +324,7 @@ Write-Output "祝日判定結果: $is_holiday"
 
 - [ ] Runbook 実行履歴の確認（エラーがないか）
 - [ ] 祝日データの確認（最新か）
-- [ ] VM 起動/停止テストの実行
+- [ ] Fabric 起動/停止テストの実行
 
 #### 年次メンテナンス
 
@@ -335,10 +335,10 @@ Write-Output "祝日判定結果: $is_holiday"
 
 ### 設定変更時の注意点
 
-1. **VM 追加時**
+1. **Fabric 追加時**
 
    ```
-   - 新しいVMのリソースグループを target_resource_group に追加
+   - 新しい Fabric のリソースグループを target_resource_group に追加
    - テスト環境での動作確認
    - 本番環境への適用
    ```
