@@ -1,6 +1,6 @@
-# Azure Automation 祝日判定付き VM 自動起動/停止 詳細セットアップガイド
+# Azure Automation 祝日判定付き Fabric 自動起動/停止 詳細セットアップガイド
 
-このドキュメントでは、Azure Automation を使用した祝日判定付き VM 自動起動/停止システムの詳細な構築手順を説明します。
+このドキュメントでは、Azure Automation を使用した祝日判定付き Fabric 自動起動/停止システムの詳細な構築手順を説明します。
 
 ## 📋 目次
 
@@ -20,15 +20,15 @@
 
 - Azure サブスクリプションの Contributor 権限以上
 - 対象リソースグループへの読み取り・書き込み権限
-- VM 操作権限
+- Fabric 操作権限
 
 ### テスト環境の準備
 
-1. **テスト用 VM の作成**
+1. **テスト用 Fabric の作成**
 
-   - 停止しても業務に影響しない VM を準備
+   - 停止しても業務に影響しない Fabric を準備
    - リソースグループを明確に分離
-   - VM の名前を控えておく
+   - Fabric の名前を控えておく
 
 2. **リソースグループの確認**
    ```bash
@@ -58,7 +58,7 @@
    ```
    サブスクリプション: （自分のサブスクリプション）
    リソースグループ: rg-automation（新規作成推奨）
-   名前: automation-vm-scheduler（わかりやすい名前）
+   名前: automation-fabric-scheduler（わかりやすい名前）
    リージョン: Japan East（東日本）
    ```
 
@@ -82,7 +82,7 @@ Azure 実行アカウント（Run As Account）は、Runbook が Azure リソー
 #### 1-2. Automation アカウントへの権限付与
 
 1. **Azure ロールの割り当て**
-Azure Automation アカウントにVMを操作するための権限を割り当てる。
+   Azure Automation アカウントに Fabric を操作するための権限を割り当てる。
 
    - Automation アカウントの「アカウント設定」→「ID」を選択し、Azure ロールの割り当てをクリック
 
@@ -137,9 +137,9 @@ https://learn.microsoft.com/ja-jp/azure/automation/enable-managed-identity-for-a
 
    ```
    名前: target_resource_group
-   説明: VMの自動起動/停止対象となるリソースグループ名
+   説明: Fabric の自動起動/停止対象となるリソースグループ名
    タイプ: 文字列
-   値: rg-test-vm（実際のリソースグループ名に変更）
+   値: rg-test-fabric（実際のリソースグループ名に変更）
    暗号化: いいえ
    ```
 
@@ -149,9 +149,9 @@ https://learn.microsoft.com/ja-jp/azure/automation/enable-managed-identity-for-a
 
    ```
    名前: exclude_VM
-   説明: 自動起動/停止を除外したい仮想マシン名
+   説明: 自動起動/停止を除外したい Fabric 名
    タイプ: 文字列
-   値: vm-production,vm-critical（除外したいVM名をカンマ区切り）
+   値: fabric-production,fabric-critical（除外したい Fabric 名をカンマ区切り）
    暗号化: いいえ
    ```
 
@@ -168,10 +168,10 @@ https://learn.microsoft.com/ja-jp/azure/automation/enable-managed-identity-for-a
 
 ```
 複数のリソースグループを対象にする場合:
-target_resource_group: rg-vm-dev,rg-vm-test
+target_resource_group: rg-fabric-dev,rg-fabric-test
 
-複数のVMを除外する場合:
-exclude_VM: vm-production-web,vm-production-db,vm-backup
+複数の Fabric を除外する場合:
+exclude_VM: fabric-production-web,fabric-production-db,fabric-backup
 ```
 
 ## Runbook の作成
@@ -223,7 +223,7 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    ```
    名前: start_vm
    Runbook の種類: PowerShell
-   説明: 対象VMの自動起動
+   説明: 対象 Fabric の自動起動
    ```
 
 2. **スクリプトの入力**
@@ -237,7 +237,7 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    ```
    名前: stop_vm
    Runbook の種類: PowerShell
-   説明: 対象VMの自動停止
+   説明: 対象 Fabric の自動停止
    ```
 
 2. **スクリプトの入力**
@@ -256,7 +256,7 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    名前: holiday_automation
    Runbook の種類: グラフィカル PowerShell
    ランタイムバージョン: 5.1
-   説明: 祝日判定と条件分岐によるVM起動制御
+   説明: 祝日判定と条件分岐による Fabric 起動制御
    ```
 
 2. **編集画面を開く**
@@ -344,8 +344,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
 
 1. **スケジュールの作成**
    ```
-   名前: Weekday-VM-Startup
-   説明: 平日のVM自動起動
+   名前: Weekday-Fabric-Startup
+   説明: 平日の Fabric 自動起動
    開始: （翌営業日） 08:00:00
    タイムゾーン: (UTC+09:00) 大阪、札幌、東京
    繰り返し: はい
@@ -357,8 +357,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
 
 1. **スケジュールの作成**
    ```
-   名前: Daily-VM-Shutdown
-   説明: 毎日のVM自動停止
+   名前: Daily-Fabric-Shutdown
+   説明: 毎日の Fabric 自動停止
    開始: （翌日） 20:00:00
    タイムゾーン: (UTC+09:00) 大阪、札幌、東京
    繰り返し: はい
@@ -415,17 +415,17 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
    - `not_holidays` Runbook を手動実行
    - 出力で祝日判定結果を確認
 
-3. **VM 停止のテスト**
+3. **Fabric 停止のテスト**
 
-   - テスト用 VM が起動していることを確認
+   - テスト用 Fabric が起動していることを確認
    - `stop_vm` Runbook を手動実行
-   - VM が停止することを確認
+   - Fabric が停止することを確認
 
 4. **統合テスト**
-   - テスト用 VM を停止状態にする
+   - テスト用 Fabric を停止状態にする
    - 変数 `holidays_JP` を一時的に今日以外の日付に変更
    - `holiday_automation` Runbook を手動実行
-   - VM が起動することを確認
+   - Fabric が起動することを確認
    - 変数を元に戻す
 
 ## 初期設定
@@ -438,8 +438,8 @@ exclude_VM: vm-production-web,vm-production-db,vm-backup
 
    ```
    # 変数の更新
-   target_resource_group: rg-production-vm
-   exclude_VM: vm-critical-system,vm-database-primary
+   target_resource_group: rg-production-fabric
+   exclude_VM: fabric-critical-system,fabric-database-primary
    ```
 
 2. **時刻の調整**
